@@ -1,12 +1,12 @@
 /*global module:false*/
-module.exports = function(grunt) {
+module.exports = function (grunt) {
 
   // Helper methods
-  function sub (str) {
+  function sub(str) {
     return str.replace(/%s/g, LIBRARY_NAME);
   }
 
-  function wrapModules (head, tail) {
+  function wrapModules(head, tail) {
     return head.concat(MODULE_LIST).concat(tail);
   }
 
@@ -14,39 +14,40 @@ module.exports = function(grunt) {
   // You will want to chage the value of this constant to whatever your library
   // is called.
   // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  var LIBRARY_NAME = 'library';
+  var LIBRARY_NAME = 'd3-corrplot';
 
   // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   // Add your modules to this list
   // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   var MODULE_LIST = [
-      sub('src/%s.module.js'),
-      sub('src/submodule/%s.submodule.js')
-    ];
+    sub('src/%s.chart.js'),
+    sub('src/%s.module.js'),
+    sub('src/submodule/%s.submodule.js')
+  ];
 
   var DIST_HEAD_LIST = [
-      sub('src/%s.intro.js'),
-      sub('src/%s.const.js'),
-      sub('src/%s.core.js')
-    ];
+    sub('src/%s.intro.js'),
+    sub('src/%s.const.js'),
+    sub('src/%s.core.js')
+  ];
 
   // This is the same as DIST_HEAD_LIST, just without *.const.js (which is just
   // there UglifyJS conditional compilation).
   var DEV_HEAD_LIST = [
-      sub('src/%s.intro.js'),
-      sub('src/%s.core.js')
-    ];
+    sub('src/%s.intro.js'),
+    sub('src/%s.core.js')
+  ];
 
   var TAIL_LIST = [
-      sub('src/%s.init.js'),
-      sub('src/%s.outro.js')
-    ];
+    sub('src/%s.init.js'),
+    sub('src/%s.outro.js')
+  ];
 
   // Gets inserted at the top of the generated files in dist/.
   var BANNER = [
-      '/*! <%= pkg.name %> - v<%= pkg.version %> - ',
-      '<%= grunt.template.today("yyyy-mm-dd") %> - <%= pkg.author %> */\n'
-    ].join('');
+    '/*! <%= pkg.name %> - v<%= pkg.version %> - ',
+    '<%= grunt.template.today("yyyy-mm-dd") %> - <%= pkg.author %> */\n'
+  ].join('');
 
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-qunit');
@@ -74,12 +75,12 @@ module.exports = function(grunt) {
     uglify: {
       dist: {
         files: (function () {
-            // Using an IIFE so that the destination property name can be
-            // created dynamically with sub().
-            var obj = {};
-            obj[sub('dist/%s.min.js')] = [sub('dist/%s.js')];
-            return obj;
-          } ())
+          // Using an IIFE so that the destination property name can be
+          // created dynamically with sub().
+          var obj = {};
+          obj[sub('dist/%s.min.js')] = [sub('dist/%s.js')];
+          return obj;
+        }())
       },
       options: {
         banner: BANNER
@@ -100,13 +101,13 @@ module.exports = function(grunt) {
   });
 
   grunt.registerTask('default', [
-      'jshint',
-      'build',
-      'qunit'
-    ]);
+    'jshint',
+    'build',
+    'qunit'
+  ]);
   grunt.registerTask('build', [
-      'concat:dist',
-      'uglify:dist',
-      'concat:dev'
-    ]);
+    'concat:dist',
+    'uglify:dist',
+    'concat:dev'
+  ]);
 };

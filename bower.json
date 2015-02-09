@@ -1,6 +1,11 @@
 {
-  "name": "lib-tmpl",
-  "version": "0.2.1",
-  "main": "./dist/library.min.js",
-  "license": "MIT"
+  "name": "d3-corrplot",
+  "version": "0.0.1",
+  "main": "./dist/d3-corrplot.min.js",
+  "license": "MIT",
+  "dependencies": {
+    "d3": "~3.5.3",
+    "d3.chart": "~0.2.1",
+    "numericjs": "~1.2.6"
+  }
 }
