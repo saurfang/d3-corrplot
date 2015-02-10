@@ -5,6 +5,7 @@ var initCorrplot = function (context) {
   initCorrplotChart(context);
   initCorrplotModule(context);
   initCorrplotSubmodule(context);
+  initCorrplotOrder(context);
   // Add a similar line as above for each module that you have.  If you have a
   // module named "Awesome Module," it should live in the file
   // "src/Corrplot.awesome-module.js" with a wrapper function named

@@ -81,10 +81,10 @@ function initCorrplotChart(context) {
           .classed('corrplot', true)
           .attr('transform', 'translate (' + this.margin.left + ',' + this.margin.top + ')');
 
-      var corrplotBackground = corrplotBase.append('rect')
-          .attr('class', 'background')
-          .attr('width', this.w)
-          .attr('height', this.w);
+      //var corrplotBackground = corrplotBase.append('rect')
+      //    .attr('class', 'background')
+      //    .attr('width', this.w)
+      //    .attr('height', this.w);
 
       this.layer('rows', corrplotBase, {
         dataBind: function (data) {
@@ -99,8 +99,8 @@ function initCorrplotChart(context) {
           chart.x.domain(order);
 
           //initialize coordinates
-          matrix.forEach(function (row, i) {
-            matrix[i] = row.map(function (cell, j) {
+          matrix = matrix.map(function (row, i) {
+            return row.map(function (cell, j) {
               return {x: j, y: i, z: cell};
             });
           });
@@ -141,8 +141,8 @@ function initCorrplotChart(context) {
         cells
             .enter().append('rect')
             .attr('class', 'cell')
-            .on('mouseover', chart.mouseover)
-            .on('mouseout', chart.mouseout);
+            .on('mouseover', chart._mouseover)
+            .on('mouseout', chart._mouseout);
 
         //goes the old
         cells
@@ -240,6 +240,37 @@ function initCorrplotChart(context) {
         }
       });
 
+      //this.layer('cols-grid', corrplotBase.append('g'), {
+      //  dataBind: function (data) {
+      //    var chart = this.chart(),
+      //        nodes = data.nodes;
+      //
+      //    return this.selectAll('.col-grid')
+      //        .data(nodes);
+      //  },
+      //  insert: function () {
+      //    var chart = this.chart();
+      //
+      //    return this
+      //        .append('line')
+      //        .classed('col-grid', true);
+      //  },
+      //  events: {
+      //    'merge': function () {
+      //      var chart = this.chart();
+      //
+      //      return this
+      //          .attr('transform', function (d, i) {
+      //            return 'translate(' + chart.x(i) + ')rotate(-90)';
+      //          })
+      //          .attr('x1', -chart.w);
+      //    },
+      //
+      //    'exit': function () {
+      //      this.remove();
+      //    }
+      //  }
+      //});
     },
 
     _loadDefaults: function () {
@@ -272,7 +303,13 @@ function initCorrplotChart(context) {
         return this.w;
       }
       this.w = newWidth;
+
+      //update x range
       this.x = this.x.rangeBands([0, newWidth]);
+
+      //redraw to refelct the size change
+      this.reDraw();
+
       return this;
     },
 
@@ -325,9 +362,9 @@ function initCorrplotChart(context) {
     // current animation duration.
     mouseover: function (newMouseover) {
       if (arguments.length == 0) {
-        return this.mouseover;
+        return this._mouseover;
       }
-      this.mouseover = newMouseover;
+      this._mouseover = newMouseover;
       return this;
     },
 
@@ -336,9 +373,9 @@ function initCorrplotChart(context) {
     // current animation duration.
     mouseout: function (newMouseout) {
       if (arguments.length == 0) {
-        return this.mouseout;
+        return this._mouseout;
       }
-      this.mouseout = newMouseout;
+      this._mouseout = newMouseout;
       return this;
     },
 
@@ -395,6 +432,23 @@ function initCorrplotChart(context) {
             });
       }
 
+      return this;
+    },
+
+    // draw and save the data for future redraw
+    drawAndSave: function(data) {
+      this._data = data;
+      this.draw(data);
+      return this;
+    },
+    reDraw: function() {
+      if(this._data) {
+        this.base
+            .attr('height', this.w + this.margin.top + this.margin.bottom)
+            .attr('width', this.w + this.margin.left + this.margin.right);
+
+        return this.draw(this._data);
+      }
       return this;
     }
   });

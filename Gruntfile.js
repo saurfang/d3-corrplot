@@ -22,6 +22,7 @@ module.exports = function (grunt) {
   var MODULE_LIST = [
     sub('src/%s.chart.js'),
     sub('src/%s.module.js'),
+    sub('src/submodule/%s.order.js'),
     sub('src/submodule/%s.submodule.js')
   ];
 

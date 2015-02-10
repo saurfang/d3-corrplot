@@ -7,7 +7,10 @@
   <script src="../bower_components/d3/d3.min.js"></script>
   <script src="../bower_components/d3.chart/d3.chart.min.js"></script>
   <script src="//cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/d3-tip/0.6.3/d3-tip.min.js"></script>
   <script src="../dist/d3-corrplot.js"></script>
+
+  <link rel="stylesheet" href="//rawgithub.com/Caged/d3-tip/master/examples/example-styles.css">
   <style>
     body {
       overflow: hidden;
@@ -16,8 +19,8 @@
       padding-left: 80px;
     }
 
-    .background {
-      fill: #ffffff;
+    line {
+      stroke: black;
     }
   </style>
 </head>
@@ -30,63 +33,27 @@
 <p>Order: <select id="order">
   <option value="original">Original</option>
   <option value="name">by Name</option>
-  <option value="total">by Magnitude</option>
   <option value="aoe">AOE</option>
   <option value="fpc">FPC</option>
 </select>
 </p>
 
-<script language="javaScript">
-  var Corrplot = new Corrplot();
+<script language="javascript">
+  var Order = new Corrplot.Order();
   var orders = {};
-  var corrplot = d3.select('body').append('svg')
-      .chart('corrplot', {
-        transform: function (data) {
-          var matrix = data.matrix,
-              nodes = data.nodes,
-              n = nodes.length;
 
-          // Compute index per node.
-          nodes.forEach(function (node, i) {
-            node.total = 0;
-            matrix[i].forEach(function (z) {
-              //TODO: double check this is correct (even if it is this assumes matrix is symmetric)
-              node.total += Math.abs(z);
-            });
-          });
-
-          // Precompute the orders.
-          var eigvec = numeric.eig(matrix).E.x;
-          orders = {
-            original: d3.range(n),
-            name: d3.range(n).sort(function (a, b) {
-              return d3.ascending(nodes[a].name, nodes[b].name);
-            }),
-            total: d3.range(n).sort(function (a, b) {
-              return nodes[b].total - nodes[a].total;
-            }),
-            aoe: function () {
-              var alpha = d3.range(n).map(function (i) {
-                var e1 = eigvec[i][0], e2 = eigvec[i][1];
-                return Math.atan(e2 / e1) + (e1 > 0 ? 0 : Math.PI);
-              });
-              return d3.range(n).sort(function (a, b) {
-                return alpha[a] - alpha[b];
-              });
-            }(),
-            fpc: function () {
-              var e1 = eigvec.map(function(d) { return d[0]; });
-              return d3.range(n).sort(function (a, b) {
-                return e1[b] - e1[a];
-              });
-            }()
-          };
-
-          return {nodes: nodes, matrix: matrix};
-        }
-      })
-      .duration(1000);
-
+  var vis = d3.select('body').append('svg');
+  /* Initialize tooltip */
+  tip = d3.tip().attr('class', 'd3-tip').html(function(d) {
+    return d.z;
+  });
+  vis.call(tip);
+  /* Invoke the tip in the context of your visualization */
+  var corrplot =  vis
+      .chart('corrplot')
+      .duration(1000)
+      .mouseover(tip.show)
+      .mouseout(tip.hide);
 
   d3.select("#order").on("change", function () {
     corrplot.order(orders[this.value]);
@@ -94,7 +61,19 @@
 
   function load(dataset) {
     d3.json('data/' + dataset, function (data) {
-      corrplot.draw(data);
+      var matrix = data.matrix,
+          nodes = data.nodes;
+
+      // Precompute the orders.
+      orders = {
+        original: Order.Original(nodes),
+        name: Order.Alphabetical(nodes, function(d) { return d.name; }),
+        aoe: Order.AOE(matrix),
+        fpc: Order.FPC(matrix)
+      };
+
+      corrplot.drawAndSave(data)
+          .order(orders[d3.select('#order').node().value]);
     });
   }
 
@@ -102,6 +81,10 @@
     load(this.value);
   });
   load('mtcars.json');
+
+  window.addEventListener("resize", function() {
+    corrplot.width(Math.min(720, d3.select('body').node().getBoundingClientRect().width - 160));
+  });
 
 </script>
 </body>
