@@ -43,8 +43,13 @@ As always, suggestions and pull requests are greatly appreciated.
 ## Related Work
 
 [lib-tmpl](https://github.com/jeremyckahn/lib-tmpl)
+
 [d3.chart](http://misoproject.com/d3-chart/)
+
 [Superformula](http://bl.ocks.org/mbostock/1020902)
+
 [corrplot](http://cran.r-project.org/web/packages/corrplot/index.html)
+
 [corrgram](http://cran.r-project.org/web/packages/corrgram/index.html)
+
 [A Graphical Display of Large Correlation Matrices](http://www.jstor.org/stable/2684435)
