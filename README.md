@@ -23,7 +23,7 @@ a lot of interesting shapes just by tweaking the parameters.
 
 However I have observed that using too many points can lead to a degenerating performance for a large
 matrix. So the choice of using finely segmentized path is up to you. If you don't include Superformula
-script, the base implementation of square and circle only just minimal points/arcs.
+script, the base implementation of square and circle only use minimal points/arcs.
 
 
 ## Notes
