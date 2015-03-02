@@ -139,7 +139,7 @@ function initCorrplotChart(context) {
         var cells = d3.select(this).selectAll('.cell').data(row);
         //comes the new ones
         cells
-            .enter().append('rect')
+            .enter().append('path')
             .attr('class', 'cell')
             .on('mouseover', chart._mouseover)
             .on('mouseout', chart._mouseout);
@@ -151,13 +151,17 @@ function initCorrplotChart(context) {
 
         //everyone needs to readjust their sizes
         cells
-            .attr('x', function (d) {
-              return chart.x(d.x);
+            .attr('transform', function (d) {
+              var halfWidth = chart.x.rangeBand() / 2;
+              return 'translate(' + (chart.x(d.x) + halfWidth) + ',' + halfWidth + ')';
             })
-            .style('fill', chart.c)
-            .attr('width', chart.x.rangeBand())
-            .attr('height', chart.x.rangeBand());
-      };
+            .attr('fill', chart.c)
+          //.attr('width', chart.x.rangeBand())
+          //.attr('height', chart.x.rangeBand())
+            .attr('d', function (d) {
+              return chart._shape(d, chart.x.rangeBand());
+            });
+      }
 
       this.layer('rows-header', corrplotBase.append('g'), {
         dataBind: function (data) {
@@ -288,6 +292,10 @@ function initCorrplotChart(context) {
       this.margin({top: 80, right: 0, bottom: 10, left: 80});
       this.rotatecols(-90);
 
+      this.shape(function (d, width) {
+        return Corrplot.Shape.Square(width);
+      });
+
       //TODO: Implement default tips
       this.mouseover(function () {
       });
@@ -389,7 +397,7 @@ function initCorrplotChart(context) {
         return this.x.domain();
       }
 
-      if (this.x.domain().length == 0) {
+      if (this.x.domain().length === 0) {
         this.x.domain(newOrder);
       } else {
         this.x.domain(newOrder);
@@ -411,8 +419,9 @@ function initCorrplotChart(context) {
             .delay(function (d) {
               return x(d.x) / width * duration;
             })
-            .attr('x', function (d) {
-              return x(d.x);
+            .attr('transform', function (d) {
+              var halfWidth = x.rangeBand() / 2;
+              return 'translate(' + (x(d.x) + halfWidth) + ',' + halfWidth + ')';
             });
 
         t.selectAll('.row-header')
@@ -435,14 +444,37 @@ function initCorrplotChart(context) {
       return this;
     },
 
+    shape: function (newShape) {
+      if (arguments.length == 0) {
+        return this._shape;
+      }
+
+      if (this._shape === undefined) {
+        this._shape = newShape;
+      } else {
+        this._shape = newShape;
+
+        var x = this.x,
+            duration = this.d,
+            t = this.base.transition().duration(duration);
+
+        t.selectAll('.cell')
+            .attr('d', function (d) {
+              return newShape(d, x.rangeBand());
+            });
+      }
+
+      return this;
+    },
+
     // draw and save the data for future redraw
-    drawAndSave: function(data) {
+    drawAndSave: function (data) {
       this._data = data;
       this.draw(data);
       return this;
     },
-    reDraw: function() {
-      if(this._data) {
+    reDraw: function () {
+      if (this._data) {
         this.base
             .attr('height', this.w + this.margin.top + this.margin.bottom)
             .attr('width', this.w + this.margin.left + this.margin.right);

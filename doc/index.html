@@ -6,6 +6,7 @@
 
   <script src="../bower_components/d3/d3.min.js"></script>
   <script src="../bower_components/d3.chart/d3.chart.min.js"></script>
+  <script src="../bower_components/d3-plugins/superformula/superformula.js"></script>
   <script src="//cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js"></script>
   <script src="//cdnjs.cloudflare.com/ajax/libs/d3-tip/0.6.3/d3-tip.min.js"></script>
   <script src="../dist/d3-corrplot.js"></script>
@@ -13,7 +14,6 @@
   <link rel="stylesheet" href="//rawgithub.com/Caged/d3-tip/master/examples/example-styles.css">
   <style>
     body {
-      overflow: hidden;
       margin: 0;
       font: 14px "Helvetica Neue";
       padding-left: 80px;
@@ -25,31 +25,61 @@
   </style>
 </head>
 <body>
-<p>Dataset: <select id="dataset">
-  <option value="mtcars.json">mtcars</option>
-  <option value="movies.json">movies</option>
-</select>
-</p>
-<p>Order: <select id="order">
-  <option value="original">Original</option>
-  <option value="name">by Name</option>
-  <option value="aoe">AOE</option>
-  <option value="fpc">FPC</option>
-</select>
+<p>
+  <label for="dataset">Dataset</label>
+  <select id="dataset">
+    <option value="mtcars.json">mtcars</option>
+    <option value="movies.json">movies</option>
+  </select>
+
+  <label for="order">Order</label>
+  <select id="order">
+    <option value="original">Original</option>
+    <option value="name">by Name</option>
+    <option value="aoe">AOE</option>
+    <option value="fpc">FPC</option>
+  </select>
+
+  <label for="shape">Shape</label>
+  <select id="shape">
+    <option value="square">Square</option>
+    <option value="scaled-square">Scaled Square</option>
+    <option value="circle">Circle</option>
+    <option value="scaled-circle">Scaled Circle</option>
+    <option value="ellipse">Ellipse</option>
+  </select>
 </p>
 
 <script language="javascript">
-  var Order = new Corrplot.Order();
-  var orders = {};
+  var Order = Corrplot.Order,
+      orders = {},
+      Shape = Corrplot.Shape,
+      shapes = {
+        'square': function (d, width) {
+          return Shape.Square(width);
+        },
+        'scaled-square': function (d, width) {
+          return Shape.Square(width * Math.abs(d.z));
+        },
+        'circle': function (d, width) {
+          return Shape.Circle(width / 2);
+        },
+        'scaled-circle': function (d, width) {
+          return Shape.Circle(width * Math.abs(d.z) / 2);
+        },
+        'ellipse': function (d, width) {
+          return Shape.Ellipse(d.z, width);
+        }
+      };
 
   var vis = d3.select('body').append('svg');
   /* Initialize tooltip */
-  tip = d3.tip().attr('class', 'd3-tip').html(function(d) {
+  tip = d3.tip().attr('class', 'd3-tip').html(function (d) {
     return d.z;
   });
   vis.call(tip);
   /* Invoke the tip in the context of your visualization */
-  var corrplot =  vis
+  var corrplot = vis
       .chart('corrplot')
       .duration(1000)
       .mouseover(tip.show)
@@ -57,6 +87,10 @@
 
   d3.select("#order").on("change", function () {
     corrplot.order(orders[this.value]);
+  });
+
+  d3.select("#shape").on("change", function () {
+    corrplot.shape(shapes[this.value]);
   });
 
   function load(dataset) {
@@ -67,13 +101,16 @@
       // Precompute the orders.
       orders = {
         original: Order.Original(nodes),
-        name: Order.Alphabetical(nodes, function(d) { return d.name; }),
+        name: Order.Alphabetical(nodes, function (d) {
+          return d.name;
+        }),
         aoe: Order.AOE(matrix),
         fpc: Order.FPC(matrix)
       };
 
       corrplot.drawAndSave(data)
-          .order(orders[d3.select('#order').node().value]);
+          .order(orders[d3.select('#order').node().value])
+          .shape(shapes[d3.select('#shape').node().value]);
     });
   }
 
@@ -82,7 +119,7 @@
   });
   load('mtcars.json');
 
-  window.addEventListener("resize", function() {
+  window.addEventListener("resize", function () {
     corrplot.width(Math.min(720, d3.select('body').node().getBoundingClientRect().width - 160));
   });
 

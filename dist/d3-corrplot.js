@@ -1,4 +1,4 @@
-/*! lib-tmpl - v0.2.1 - 2015-02-09 - Jeremy Kahn */
+/*! d3-corrplot - v0.0.1 - 2015-03-01 - Jeremy Kahn */
 ;(function (global) {
 
 // Compiler directive for UglifyJS.  See Corrplot.const.js for more info.
@@ -287,7 +287,7 @@ function initCorrplotChart(context) {
         var cells = d3.select(this).selectAll('.cell').data(row);
         //comes the new ones
         cells
-            .enter().append('rect')
+            .enter().append('path')
             .attr('class', 'cell')
             .on('mouseover', chart._mouseover)
             .on('mouseout', chart._mouseout);
@@ -299,13 +299,17 @@ function initCorrplotChart(context) {
 
         //everyone needs to readjust their sizes
         cells
-            .attr('x', function (d) {
-              return chart.x(d.x);
+            .attr('transform', function (d) {
+              var halfWidth = chart.x.rangeBand() / 2;
+              return 'translate(' + (chart.x(d.x) + halfWidth) + ',' + halfWidth + ')';
             })
-            .style('fill', chart.c)
-            .attr('width', chart.x.rangeBand())
-            .attr('height', chart.x.rangeBand());
-      };
+            .attr('fill', chart.c)
+          //.attr('width', chart.x.rangeBand())
+          //.attr('height', chart.x.rangeBand())
+            .attr('d', function (d) {
+              return chart._shape(d, chart.x.rangeBand());
+            });
+      }
 
       this.layer('rows-header', corrplotBase.append('g'), {
         dataBind: function (data) {
@@ -436,6 +440,10 @@ function initCorrplotChart(context) {
       this.margin({top: 80, right: 0, bottom: 10, left: 80});
       this.rotatecols(-90);
 
+      this.shape(function (d, width) {
+        return Corrplot.Shape.Square(width);
+      });
+
       //TODO: Implement default tips
       this.mouseover(function () {
       });
@@ -537,7 +545,7 @@ function initCorrplotChart(context) {
         return this.x.domain();
       }
 
-      if (this.x.domain().length == 0) {
+      if (this.x.domain().length === 0) {
         this.x.domain(newOrder);
       } else {
         this.x.domain(newOrder);
@@ -559,8 +567,9 @@ function initCorrplotChart(context) {
             .delay(function (d) {
               return x(d.x) / width * duration;
             })
-            .attr('x', function (d) {
-              return x(d.x);
+            .attr('transform', function (d) {
+              var halfWidth = x.rangeBand() / 2;
+              return 'translate(' + (x(d.x) + halfWidth) + ',' + halfWidth + ')';
             });
 
         t.selectAll('.row-header')
@@ -583,14 +592,37 @@ function initCorrplotChart(context) {
       return this;
     },
 
+    shape: function (newShape) {
+      if (arguments.length == 0) {
+        return this._shape;
+      }
+
+      if (this._shape === undefined) {
+        this._shape = newShape;
+      } else {
+        this._shape = newShape;
+
+        var x = this.x,
+            duration = this.d,
+            t = this.base.transition().duration(duration);
+
+        t.selectAll('.cell')
+            .attr('d', function (d) {
+              return newShape(d, x.rangeBand());
+            });
+      }
+
+      return this;
+    },
+
     // draw and save the data for future redraw
-    drawAndSave: function(data) {
+    drawAndSave: function (data) {
       this._data = data;
       this.draw(data);
       return this;
     },
-    reDraw: function() {
-      if(this._data) {
+    reDraw: function () {
+      if (this._data) {
         this.base
             .attr('height', this.w + this.margin.top + this.margin.bottom)
             .attr('width', this.w + this.margin.left + this.margin.right);
@@ -690,98 +722,117 @@ function initCorrplotModule (context) {
 }
 
 /**
- * Orders are similar to modules, only they do not use the same namespace as 
+ * Orders are similar to modules, only they do not use the same namespace as
  * the Core, but defined a sub-namespace of their own.
  * @param {Object} The Object that the Corrplot gets attached to in
  * Corrplot.init.js.  If the Corrplot was not loaded with an AMD loader such as
  * require.js, this is the global Object.
  */
-function initCorrplotOrder (context) {
+function initCorrplotOrder(context) {
   'use strict';
 
   var Corrplot = context.Corrplot;
 
-  /*
-   * The submodule constructor
-   * @param {Object} opt_config Contains any properties that should be used to
-   * configure this instance of the Corrplot.
-   * @constructor
-   */
-  var submodule = Corrplot.Order = function(opt_config) {
-    
-    // defines a temporary variable, 
-    // living only as long as the constructor runs.
-    var constructorVariable = "Constructor Variable";
-    
-    // set an instance variable
-    // will be available after constructor has run. 
-    this.instanceVariable = null;
+  Corrplot.Order = {
+    Original: function (n) {
+      if (Array.isArray(n)) n = n.length;
+      if (typeof (n) === 'object') n = n.nodes.length;
 
-    // an optional call to the private method
-    // at the end of the construction process
-    this._privateMethod(constructorVariable);
-  };
+      return d3.range(n);
+    },
 
-  // Corrplot PROTOTYPE EXTENSIONS
-  /**
-   * A public method of the submodule
-   * @param {object} a variable to be set to the instance variable
-   * @returns {object} the final value of the instance variable
-   */
-  submodule.prototype.publicMethod = function(value){
-    if (value !== undefined) {
-      this._privateMethod(value);
+    Alphabetical: function (nodes, fn) {
+      if (arguments.length == 1) fn = function (d) {
+        return d;
+      };
+
+      return d3.range(nodes.length).sort(function (a, b) {
+        return d3.ascending(fn(nodes[a]), fn(nodes[b]));
+      });
+    },
+
+    AOE: function (matrix) {
+      if (!Array.isArray(matrix)) matrix = matrix.matrix;
+
+      var eigvec = numeric.eig(matrix).E.x;
+      var alpha = d3.range(matrix.length).map(function (i) {
+        var e1 = eigvec[i][0], e2 = eigvec[i][1];
+        return Math.atan(e2 / e1) + (e1 > 0 ? 0 : Math.PI);
+      });
+      return d3.range(matrix.length).sort(function (a, b) {
+        return alpha[a] - alpha[b];
+      });
+    },
+
+    FPC: function (matrix) {
+      if (!Array.isArray(matrix)) matrix = matrix.matrix;
+
+      var eigvec = numeric.eig(matrix).E.x;
+      var e1 = eigvec.map(function (d) {
+        return d[0];
+      });
+      return d3.range(matrix.length).sort(function (a, b) {
+        return e1[b] - e1[a];
+      });
     }
+  };
+}
+/**
+ * Orders are similar to modules, only they do not use the same namespace as
+ * the Core, but defined a sub-namespace of their own.
+ * @param {Object} The Object that the Corrplot gets attached to in
+ * Corrplot.init.js.  If the Corrplot was not loaded with an AMD loader such as
+ * require.js, this is the global Object.
+ */
+function initCorrplotShape(context) {
+  'use strict';
 
-    return this.instanceVariable;
+  var Corrplot = context.Corrplot;
+
+  Corrplot.Shape = {
+    Square: function (width) {
+      return 'M -' + width / 2 + ',' + '-' + width / 2 + ' h ' + width + ' v ' + width + ' h -' + width + ' Z';
+    },
+    Circle: function (r) {
+      return 'M -' + r + ',0 ' +
+          'a ' + r + ',' + r + ' 0 1,0 ' + r * 2 + ',0 ' +
+          'a ' + r + ',' + r + ' 0 1,0 -' + r * 2 + ',0';
+    },
+    Ellipse: function (rho, width, segments) {
+      if (arguments.length === 2) segments = 180;
+
+      var delta = Math.acos(rho),
+          scale = width / 2,
+          line = d3.svg.line()
+              .x(function (d) {
+                return d.x * scale;
+              })
+              .y(function (d) {
+                return d.y * scale;
+              });
+
+      return line(d3.range(0, 180).map(function (i) {
+        var theta = i * Math.PI / 90;
+        return {'x': Math.cos(theta + delta / 2), 'y': Math.cos(theta - delta / 2)}
+      }));
+    }
   };
 
-  submodule.prototype.Original = function(n) {
-    if(Array.isArray(n)) n = n.length;
-    if(typeof (n) === 'object') n = n.nodes.length;
+  if (d3.superformula !== undefined) {
+    Corrplot.Shape = {
+      Square: function (width, segments) {
+        if (arguments.length === 1) segments = 180;
 
-    return d3.range(n);
-  };
+        return d3.superformula().type('square').size(width * width).segments(segments)();
+      },
+      Circle: function (r, segments) {
+        if (arguments.length === 1) segments = 180;
 
-  submodule.prototype.Alphabetical = function(nodes, fn) {
-    if(arguments.length == 1) fn = function(d) { return d; };
-
-    return d3.range(nodes.length).sort(function (a, b) {
-      return d3.ascending(fn(nodes[a]), fn(nodes[b]));
-    });
-  };
-
-  submodule.prototype.AOE = function(matrix) {
-    if(!Array.isArray(matrix)) matrix = matrix.matrix;
-
-    var eigvec = numeric.eig(matrix).E.x;
-    var alpha = d3.range(matrix.length).map(function (i) {
-      var e1 = eigvec[i][0], e2 = eigvec[i][1];
-      return Math.atan(e2 / e1) + (e1 > 0 ? 0 : Math.PI);
-    });
-    return d3.range(matrix.length).sort(function (a, b) {
-      return alpha[a] - alpha[b];
-    });
-  };
-
-  submodule.prototype.FPC = function(matrix) {
-    if(!Array.isArray(matrix)) matrix = matrix.matrix;
-
-    var eigvec = numeric.eig(matrix).E.x;
-    var e1 = eigvec.map(function(d) { return d[0]; });
-    return d3.range(matrix.length).sort(function (a, b) {
-      return e1[b] - e1[a];
-    });
-  };
-
-  /** 
-   * a private instance method
-   * @param {object} a variable to be set to the instance variable
-   * @returns {object} the final value of the instance variable
-   */
-  submodule.prototype._privateMethod = function(value){
-    return this.instanceVariable = value;
-  };
+        return d3.superformula().type('circle').size(r * r * 2).segments(segments)();
+      },
+      Ellipse: Corrplot.Shape.Ellipse
+    };
+  }
 }
 /**
  * Submodules are similar to modules, only they do not use the same namespace as 
@@ -843,6 +894,7 @@ function initCorrplotSubmodule (context) {
 var initCorrplot = function (context) {
 
   initCorrplotCore(context);
+  initCorrplotShape(context);
   initCorrplotChart(context);
   initCorrplotModule(context);
   initCorrplotSubmodule(context);

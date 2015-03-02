@@ -2,6 +2,7 @@
 var initCorrplot = function (context) {
 
   initCorrplotCore(context);
+  initCorrplotShape(context);
   initCorrplotChart(context);
   initCorrplotModule(context);
   initCorrplotSubmodule(context);
